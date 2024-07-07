@@ -1,39 +1,65 @@
-from Parser import Parser
+from classes.Matrix import Matrix
+from classes.Operations import Transpose, Matmul
 from Processor import Processor
 from Calculator import Calculator
 
 
 
-parser = Parser()
+
+
+
+sequence = "(Q K^T * M) (V * W)"
+shapes = {
+    "Q": ["N", "S", "d_k"],
+    "K": ["N", "S", "d_k"],
+    "V": ["N", "S", "d_v"],
+    "M": ["N", "S", "S"],
+    "W": ["N", "S", "S"],
+}
+wanted_grads = [
+    "Q",
+    "K",
+    "V",
+    "M",
+    "W",
+]
+
+
+
+
+
 processor = Processor()
 calculator = Calculator()
 
 
 
-equation = "K^T Q K^T V"
-shapes = {
-    "Q": ["N", "S", "d_k"],
-    "K": ["N", "S", "d_k"],
-    "V": ["N", "S", "d_v"]
-}
+# Process input to a symbolic representation
+symbols, matrices_and_functions = processor.process(sequence, shapes)
 
+# Prev grad matrix initialized to the output shape
+prev_grad = Matrix(shapes["V"], "dL")
 
-# Parse the input
-parsed_input = parser.parse(equation, shapes)
+# Calculate the gradients
+calculator.calculate(symbols, matrices_and_functions, prev_grad)
 
-# Process the input and check for errors
-final_shape = processor.process(parsed_input)
-
-# Print the final shape
-print(f"Input gradient dL will be of shape {final_shape}")
-
-# Calculate the gradients for each matrix
-gradients = calculator.calculate(parsed_input, final_shape)
-
-# Iterate through all the gradients and convert them to strings
-for key, value in gradients.items():
-    total_grad = []
-    for grad in value:
-        total_grad.append(calculator.combine_matrices(grad))
-    total_grad = " + ".join(total_grad)
-    print(f"dL/d{key} = {total_grad}")
+# Print the gradients
+for key in wanted_grads:
+    grad_fns = matrices_and_functions[key].grad
+    string = "+".join([str(grad_fn) for grad_fn in grad_fns])
+    print(f"Gradient of {key}: {string}")
+    
+print()
+    
+# Print gradients in torch notation
+for key in wanted_grads:
+    grad_fns = matrices_and_functions[key].grad
+    string = " + ".join([str(grad_fn) for grad_fn in grad_fns])
+    string = string.replace(" ", "@")
+    string = string.replace("@*@", " * ")
+    string = string.replace("@+@", " + ")
+    string = string.replace("@", " @ ")
+    string = string.replace("[", "(")
+    string = string.replace("]", ")")
+    string = string.replace("dL", "prev_grad")
+    string = string.replace("^T", ".mT")
+    print(f"{key}_grad = {string}")

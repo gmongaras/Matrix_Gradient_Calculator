@@ -3,7 +3,7 @@ from copy import deepcopy
 
 class Parser():
     def __init__(self):
-        self.special = ["^", "T"]
+        self.special = ["^", "T", "*"]
     
     def parse(self, equation, shapes):
         # Sequence of operations
@@ -14,6 +14,7 @@ class Parser():
         
         # Iterate over every character in the input string
         c = 0
+        hadamard_op = False
         while c < len(equation):
             char = equation[c]
             c += 1
@@ -26,8 +27,9 @@ class Parser():
             elif char.isalpha() and char not in self.special:
                 print("Letter: " + char)
                 
-                operations.append(Matrix(char, deepcopy(shapes[char])))
+                operations.append(Matrix(char, deepcopy(shapes[char]), hadamard_on_left=hadamard_op))
                 cache = [operations[-1]]
+                hadamard_op = False
                 
             # Is the character a T?
             elif char == "T":
@@ -59,6 +61,11 @@ class Parser():
                         cache[0].transpose()
                     else:
                         raise Exception("Invalid character after power at index " + str(c))
+                    
+        
+            elif char == "*":
+                # Change the flag indicating there is a hadamard on the left
+                hadamard_op = True
 
 
             # Is the character a special character?

@@ -4,11 +4,12 @@ from copy import deepcopy
 
 
 class Matrix:
-    def __init__(self, label, shape, is_transposed=False, power=None):
+    def __init__(self, label, shape, is_transposed=False, power=None, hadamard_on_left=False):
         self.label = label
         self.shape = shape
         self.is_transposed = is_transposed
         self.power = power
+        self.hadamard_on_left = hadamard_on_left
         
         
     def transpose(self):
@@ -36,9 +37,11 @@ class Matrix:
             
             
     def __str__(self):
+        output_string = self.label
         if self.is_transposed:
-            return f"{self.label}^T"
-        elif self.power:
-            return f"{self.label}^{self.power}"
-        else:
-            return f"{self.label}"
+            output_string += "^T"
+        if self.power:
+            output_string += f"^{self.power}"
+        if self.hadamard_on_left:
+            output_string = f"* {output_string}"
+        return output_string
