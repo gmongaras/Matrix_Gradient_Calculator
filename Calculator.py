@@ -1,5 +1,5 @@
 from classes.Matrix import Matrix
-from classes.Operations import Transpose, Matmul, Hadamard
+from classes.Operations import Transpose, Power, Matmul, Hadamard
 
 
 
@@ -22,14 +22,20 @@ class Calculator:
         # If the function is Matmul, Hadamard, or Add, we calculate both sides and
         # chain rule if either side is a function
         elif isinstance(symbols, Matmul) or isinstance(symbols, Hadamard):
-            left_grad = symbols.get_grad_wrt_left(prev_grad)
-            right_grad = symbols.get_grad_wrt_right(prev_grad)
-            
-            # If left is a function, calculate its gradient
-            self.calculate(symbols.left, matrices_and_functions, left_grad)
+            if isinstance(symbols.left, Power):
+                left_grad = symbols.left.get_grad_wrt_left(prev_grad, other_side=symbols.right, operation="matmul" if isinstance(symbols, Matmul) else "hadamard")
+                self.calculate(symbols.left.matrix, matrices_and_functions, left_grad)
+            else:
+                left_grad = symbols.get_grad_wrt_left(prev_grad)
+                self.calculate(symbols.left, matrices_and_functions, left_grad)
                 
-            # If right is a function, calculate its gradient
-            self.calculate(symbols.right, matrices_and_functions, right_grad)
+            if isinstance(symbols.right, Power):
+                right_grad = symbols.right.get_grad_wrt_right(prev_grad, other_side=symbols.left, operation="matmul" if isinstance(symbols, Matmul) else "hadamard")
+                self.calculate(symbols.right.matrix, matrices_and_functions, right_grad)
+            else:
+                right_grad = symbols.get_grad_wrt_right(prev_grad)
+                self.calculate(symbols.right, matrices_and_functions, right_grad)
+            
                 
         # If the function is a matrix, we add the gradient to the matrix
         elif isinstance(symbols, Matrix):

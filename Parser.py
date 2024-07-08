@@ -58,11 +58,15 @@ class Parser:
                         # Simulate the transpose on the matrix shape
                         shape = op_to_function["transpose"].simulate(shape)
                         
-                    # # Is the symbol after the up arrow a number?
-                    # if i + 1 < len(sequence) and sequence[i].isnumeric():
-                    #     # If so, we have a power
-                    #     cur_op = "power"
-                    #     i += 1
+                    # Is the symbol after the up arrow a number?
+                    elif i + 1 < len(sequence) and sequence[i + 1].isnumeric():
+                        i += 1
+                        # Iterate through the number
+                        num = ""
+                        while i < len(sequence) and sequence[i].isnumeric():
+                            num += sequence[i]
+                            i += 1
+                        # If so, we have a power
                     else:
                         raise ValueError("Invalid syntax: ^ must be followed by T or a number")
                 

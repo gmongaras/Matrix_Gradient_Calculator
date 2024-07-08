@@ -1,5 +1,5 @@
 from classes.Matrix import Matrix
-from classes.Operations import Transpose, Matmul, Hadamard
+from classes.Operations import Transpose, Power, Matmul, Hadamard
 
 
 
@@ -42,10 +42,21 @@ class Processor:
         # Is there a "^T" after? If so, transpose this matrix
         i = 0
         if i < len(sequence) and sequence[i] == "^":
+            # Is it transposed?
             if i + 1 < len(sequence) and sequence[i + 1] == "T":
                 current_right = Transpose(matrices_and_functions[symbol], name=self.get_function_name)
                 self.add_function(current_right, matrices_and_functions)
                 i += 2
+            # Is it a power?
+            elif i + 1 < len(sequence) and sequence[i + 1].isnumeric():
+                # We need to get the entire power
+                num = ""
+                while i + 1 < len(sequence) and sequence[i + 1].isnumeric():
+                    num += sequence[i + 1]
+                    i += 1
+                i += 1
+                power = int(num)
+                current_right = Power(matrices_and_functions[symbol], power, name=self.get_function_name)
                 
         return current_right, i
     

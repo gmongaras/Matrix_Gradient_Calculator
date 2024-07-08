@@ -9,7 +9,7 @@ from Calculator import Calculator
 
 
 
-sequence = "(Q K^T * M) (V * W)"
+sequence = "(M^10 Q K^T M^10) (V * W)"
 shapes = {
     "Q": ["N", "S", "d_k"],
     "K": ["N", "S", "d_k"],
