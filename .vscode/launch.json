@@ -10,7 +10,7 @@
             "request": "launch",
 
 
-            "program": "main.py",
+            "program": "check.py",
             
             
             "console": "integratedTerminal"

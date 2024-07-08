@@ -6,16 +6,26 @@ class Function(torch.autograd.Function):
     @staticmethod
     def forward(ctx, Q, K, V, W, M):
         ctx.save_for_backward(Q, K, V, W, M)
-        return ((Q @ K.mT) * M) @ V
+        # return ((Q @ K.mT) * M) @ V
+        return (Q @ K.mT * M) @ (V * W) * W * W * W * W
 
     @staticmethod
     def backward(ctx, grad_output):
         Q, K, V, W, M = ctx.saved_tensors
-        Q_grad = ((grad_output @ V.mT) * M) @ K.mT.mT
-        K_grad = (Q.mT @ ((grad_output @ V.mT) * M)).mT
-        V_grad = ((Q @ K.mT) * M).mT @ grad_output
-        W_grad = None
-        M_grad = ((Q @ K.mT) * (grad_output @ V.mT))
+        # Q_grad = ((grad_output @ V.mT) * M) @ K.mT.mT
+        # K_grad = (Q.mT @ ((grad_output @ V.mT) * M)).mT
+        # V_grad = ((Q @ K.mT) * M).mT @ grad_output
+        # W_grad = None
+        # M_grad = ((Q @ K.mT) * (grad_output @ V.mT))
+        
+        prev_grad = grad_output
+        
+        Q_grad = ((prev_grad @ ((V * W)).mT) * M) @ (K.mT).mT
+        K_grad = (Q.mT @ ((prev_grad @ ((V * W)).mT) * M)).mT
+        V_grad = (((((Q @ K.mT) * M)).mT @ prev_grad) * W)
+        M_grad = ((Q @ K.mT) * (prev_grad @ ((V * W)).mT))
+        W_grad = (V * ((((Q @ K.mT) * M)).mT @ prev_grad))
+        
         return Q_grad, K_grad, V_grad, W_grad, M_grad
     
     
