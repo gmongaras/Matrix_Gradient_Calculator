@@ -8,13 +8,42 @@ Ever find yourself needing the calculate the gradient of a function for PyTorch 
 
 I have and that's why I'm making this. So that I don't have to again.
 
+
+
+
+I guess I can now get all the gradients for a silu neural network:
+
+```
+O = f(f(f((f(X @ A) + X) @ B) @ C) @ D)
+
+shapes = {
+    "X": ["1", "d"],
+    "A": ["d", "d"],
+    "B": ["d", "D"],
+    "C": ["D", "D"],
+    "D": ["D", "d"],
+}
+
+X_grad = ((f_der(X @ A)) * (((f_der(((f(X @ A)) + X) @ B)) * (((f_der(f(((f(X @ A)) + X) @ B) @ C)) * (((f_der(f(f(((f(X @ A)) + X) @ B) @ C) @ D)) * prev_grad) @ D.mT)) @ C.mT)) @ B.mT)) @ A.mT + ((f_der(((f(X @ A)) + X) @ B)) * (((f_der(f(((f(X @ A)) + X) @ B) @ C)) * (((f_der(f(f(((f(X @ A)) + X) @ B) @ C) @ D)) * prev_grad) @ D.mT)) @ C.mT)) @ B.mT
+A_grad = X.mT @ ((f_der(X @ A)) * (((f_der(((f(X @ A)) + X) @ B)) * (((f_der(f(((f(X @ A)) + X) @ B) @ C)) * (((f_der(f(f(((f(X @ A)) + X) @ B) @ C) @ D)) * prev_grad) @ D.mT)) @ C.mT)) @ B.mT))
+B_grad = (((f(X @ A)) + X)).mT @ ((f_der(((f(X @ A)) + X) @ B)) * (((f_der(f(((f(X @ A)) + X) @ B) @ C)) * (((f_der(f(f(((f(X @ A)) + X) @ B) @ C) @ D)) * prev_grad) @ D.mT)) @ C.mT))
+C_grad = (f(((f(X @ A)) + X) @ B)).mT @ ((f_der(f(((f(X @ A)) + X) @ B) @ C)) * (((f_der(f(f(((f(X @ A)) + X) @ B) @ C) @ D)) * prev_grad) @ D.mT))        
+D_grad = (f(f(((f(X @ A)) + X) @ B) @ C)).mT @ ((f_der(f(f(((f(X @ A)) + X) @ B) @ C) @ D)) * prev_grad)
+```
+
+
+
+
 Current partial support:
 - matrix multiplication
 - hadamard product
+- additions
 - transposes
+- scalar functions
 
 Less than partial support:
-- matrix power
+- matrix power (I don't remember why this is here. Hopefully it doesn't become a problem)
 
 Future support:
-- sums
+- matrix names
+- vector functions
