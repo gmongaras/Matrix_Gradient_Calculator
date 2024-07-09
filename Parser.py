@@ -1,10 +1,11 @@
-from classes.Operations import Transpose, Matmul, Hadamard
+from copy import deepcopy
+from classes.Operations import Transpose, Matmul, Hadamard, Add
 
 
 
 
 operations = {
-    "": "matmul",
+    "@": "matmul",
     "*": "hadamard",
     "+": "add",
 }
@@ -14,7 +15,7 @@ op_to_function = {
     "matmul": Matmul,
     "hadamard": Hadamard,
     "transpose": Transpose,
-    # "add": Add,
+    "add": Add,
 }
 
 # Special letters for matrix funcitons that are allowed
@@ -49,7 +50,7 @@ class Parser:
             # Is this a matrix? A matrix can only be a capital letter
             if symbol.isalpha() and symbol.isupper():
                 # Get the shape of the matrix
-                shape = shapes[symbol]
+                shape = deepcopy(shapes[symbol])
                 
                 # Is the next symbol an up arrow?
                 if i < len(sequence) and sequence[i] == "^":

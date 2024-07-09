@@ -12,20 +12,52 @@ from Similifier import Similifier
 
 # sequence = "(M^10 Q K^T M^10) (V * W)"
 # sequence = "softmax((Q K^T) * M) V"
-sequence = "silu((Q K^T) * M) V"
+# sequence = "silu((Q K^T) * M) V"
+# shapes = {
+#     "Q": ["N", "S", "d_k"],
+#     "K": ["N", "S", "d_k"],
+#     "V": ["N", "S", "d_v"],
+#     "M": ["N", "S", "S"],
+#     "W": ["N", "S", "d_v"],
+# }
+# wanted_grads = [
+#     "Q",
+#     "K",
+#     "V",
+#     "M",
+#     # "W",
+# ]
+
+# sequence = "silu((Q K^T) * M) V"
+# shapes = {
+#     "Q": ["N", "S", "d_k"],
+#     "K": ["N", "S", "d_k"],
+#     "V": ["N", "S", "d_v"],
+#     "M": ["N", "S", "S"],
+#     "W": ["N", "S", "d_v"],
+# }
+# wanted_grads = [
+#     "Q",
+#     "K",
+#     "V",
+#     "M",
+#     # "W",
+# ]
+
+sequence = "f(f(f((f(X @ A) + X) @ B) @ C) @ D)"
 shapes = {
-    "Q": ["N", "S", "d_k"],
-    "K": ["N", "S", "d_k"],
-    "V": ["N", "S", "d_v"],
-    "M": ["N", "S", "S"],
-    "W": ["N", "S", "d_v"],
+    "X": ["1", "d"],
+    "A": ["d", "d"],
+    "B": ["d", "D"],
+    "C": ["D", "D"],
+    "D": ["D", "d"],
 }
 wanted_grads = [
-    "Q",
-    "K",
-    "V",
-    "M",
-    # "W",
+    "X",
+    "A",
+    "B",
+    "C",
+    "D",
 ]
 
 
@@ -72,4 +104,5 @@ for key in wanted_grads:
     string = string.replace("]", ")")
     string = string.replace("dL", "prev_grad")
     string = string.replace("^T", ".mT")
+    string = string.replace("'", "_der")
     print(f"{key}_grad = {string}")

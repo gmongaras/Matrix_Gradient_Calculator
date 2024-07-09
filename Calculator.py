@@ -1,5 +1,5 @@
 from classes.Matrix import Matrix
-from classes.Operations import Transpose, Power, Matmul, Hadamard, MatrixFunction
+from classes.Operations import Transpose, Power, Matmul, Hadamard, Add, MatrixFunction
 
 
 
@@ -26,7 +26,7 @@ class Calculator:
             
         # If the function is Matmul, Hadamard, or Add, we calculate both sides and
         # chain rule if either side is a function
-        elif isinstance(symbols, Matmul) or isinstance(symbols, Hadamard):
+        elif isinstance(symbols, Matmul) or isinstance(symbols, Hadamard) or isinstance(symbols, Add):
             if isinstance(symbols.left, Power):
                 left_grad = symbols.left.get_grad_wrt_left(prev_grad, other_side=symbols.right, operation="matmul" if isinstance(symbols, Matmul) else "hadamard")
                 self.calculate(symbols.left.matrix, matrices_and_functions, left_grad)

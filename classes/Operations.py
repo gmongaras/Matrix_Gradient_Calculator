@@ -127,6 +127,29 @@ class Hadamard:
         return cur_shape
     
     
+class Add:
+    def __init__(self, left=None, right=None, name=None):
+        self.name = name
+        self.left = left
+        self.right = right
+        
+    def get_grad_wrt_left(self, prev_grad):
+        return prev_grad
+    
+    def get_grad_wrt_right(self, prev_grad):
+        return prev_grad
+    
+    def __str__(self,):
+        left_ = str(self.left) if isinstance(self.left, Matrix) else f"[{self.left}]"
+        right_ = str(self.right) if isinstance(self.right, Matrix) else f"[{self.right}]"
+        return f"({left_} + {right_})"
+    
+    def simulate(cur_shape, mat_shape):
+        assert len(cur_shape) == len(mat_shape)
+        assert cur_shape == mat_shape
+        return cur_shape
+    
+    
     
     
     

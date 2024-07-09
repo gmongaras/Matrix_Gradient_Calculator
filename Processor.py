@@ -1,5 +1,5 @@
 from classes.Matrix import Matrix
-from classes.Operations import Transpose, Power, Matmul, Hadamard, MatrixFunction
+from classes.Operations import Transpose, Power, Matmul, Hadamard, Add, MatrixFunction
 from Parser import special_letters
 
 
@@ -124,9 +124,19 @@ class Processor:
             if symbol == " ":
                 continue
             
+            # If we see "@", then the operation becomes Matmul
+            elif symbol == "@":
+                op = Matmul
+                continue
+            
             # If we see "*", then the operation becomes Hadamard
-            if symbol == "*":
+            elif symbol == "*":
                 op = Hadamard
+                continue
+            
+            # If we see "+", then the operation becomes Add
+            elif symbol == "+":
+                op = Add
                 continue
             
             # If we see a parenthesis, we can just recursively call this function
