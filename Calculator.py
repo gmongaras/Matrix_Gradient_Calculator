@@ -1,5 +1,5 @@
 from classes.Matrix import Matrix
-from classes.Operations import Transpose, Power, Matmul, Hadamard
+from classes.Operations import Transpose, Power, Matmul, Hadamard, MatrixFunction
 
 
 
@@ -18,6 +18,11 @@ class Calculator:
         if isinstance(symbols, Transpose):
             prev_grad = prev_grad
             self.calculate(symbols.matrix, matrices_and_functions, prev_grad, is_transposed=not is_transposed)
+            
+        # For MatrixFunction we just calculate the gradient and use this as our new previous gradient
+        elif isinstance(symbols, MatrixFunction):
+            prev_grad = symbols.get_grad(prev_grad)
+            self.calculate(symbols.matrix, matrices_and_functions, prev_grad)
             
         # If the function is Matmul, Hadamard, or Add, we calculate both sides and
         # chain rule if either side is a function

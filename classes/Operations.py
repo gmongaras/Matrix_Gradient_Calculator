@@ -125,3 +125,38 @@ class Hadamard:
         assert len(cur_shape) == len(mat_shape)
         assert cur_shape == mat_shape
         return cur_shape
+    
+    
+    
+    
+    
+# Function applied to a matrix such as ReLU, Sigmoid, Softmax, etc.
+class MatrixFunction:
+    def __init__(self, matrix, name):
+        self.name = name
+        self.matrix = matrix
+        
+    # Gradient is the Hadamard product of the gradient of the function and the previous gradient
+    def get_grad(self, prev_grad):
+        return Hadamard(MatrixFunctionGrad(self.matrix, self.name), prev_grad)
+    
+    def __str__(self, ):
+        return f"{self.name}({self.matrix})"
+    
+    def simulate(cur_shape):
+        return cur_shape
+    
+# Dummy class for the gradient of a matrix function
+class MatrixFunctionGrad:
+    def __init__(self, matrix, name):
+        self.name = name
+        self.matrix = matrix
+        
+    def get_grad(self, prev_grad):
+        raise NotImplementedError
+    
+    def __str__(self, ):
+        return f"{self.name}'({self.matrix})"
+    
+    def simulate(cur_shape):
+        return cur_shape

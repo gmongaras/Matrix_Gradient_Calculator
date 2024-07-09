@@ -1,5 +1,6 @@
 from classes.Matrix import Matrix
-from classes.Operations import Transpose, Power, Matmul, Hadamard
+from classes.Operations import Transpose, Power, Matmul, Hadamard, MatrixFunction
+from Parser import special_letters
 
 
 
@@ -9,6 +10,8 @@ class Processor:
     def __init__(self,):
         # Name of function will start from f0 and monotonically increase
         self.function_number = 0
+        
+        self.special_letters = special_letters
     
     
     
@@ -23,12 +26,42 @@ class Processor:
         
         
     def process_parenthesis(self, sequence, matrices_and_functions, shapes):
-        # Find first instance of closing parenthesis
-        closing_parenthesis = sequence.index(")")
+        # Get the closing parenthesis (last instance)
+        closing_parenthesis = len(sequence) - 1 - sequence[::-1].index(")")
         # Slice string for recursion
         substring = sequence[:closing_parenthesis].strip()
         
         return self.process(substring, shapes, matrices_and_functions)[0], closing_parenthesis + 1
+    
+    
+    
+    def process_matrix_function(self, sequence, matrices_and_functions, shapes):
+        # We need to get the entire function name
+        i = 0
+        function_name = ""
+        # Iterate until we reach a left parenthesis
+        while i < len(sequence) and sequence[i] != "(":
+            symbol = sequence[i]
+            
+            # If the symbol is not a letter, raise an error
+            if not symbol.isalpha() and symbol not in self.special_letters:
+                raise ValueError("Function name must be all letters")
+            
+            function_name += symbol
+            i += 1
+        i += 1
+        
+        # Get the closing parenthesis (last instance)
+        closing_parenthesis = len(sequence[i:]) - 1 - sequence[i:][::-1].index(")")
+        # Slice the string for recursion
+        substring = sequence[i:i+closing_parenthesis]
+        # Process the function
+        inner_function = self.process(substring, shapes, matrices_and_functions)[0]
+        
+        # Wrap the function in a MatrixFunction
+        current_right = MatrixFunction(inner_function, name=function_name)
+        
+        return current_right, i + closing_parenthesis + 1
     
     
     
@@ -73,8 +106,10 @@ class Processor:
         # Initialize with the first
         current_left = None
         # matrices_and_functions[sequence[0]] = Matrix(sequence[0], shapes[sequence[0]])
-        if sequence[0].isalpha():
+        if sequence[0].isalpha() and sequence[0].isupper():
             current_right, i_add = self.process_matrix(sequence[0], sequence[1:], matrices_and_functions, shapes)
+        elif sequence[0].isalpha() and sequence[0].islower():
+            current_right, i_add = self.process_matrix_function(sequence, matrices_and_functions, shapes)
         elif sequence[0] == "(":
             current_right, i_add = self.process_parenthesis(sequence[1:], matrices_and_functions, shapes)
         i += i_add
@@ -103,12 +138,19 @@ class Processor:
                 i += i_add
                 
             
-            # Is the symbol a letter? If so, then it's a matrix
-            elif symbol.isalpha():
+            # Is the symbol an uppercase letter? If so, then it's a matrix
+            elif symbol.isalpha() and symbol.isupper():
                 # Move right to current left
                 current_left = current_right
                 
                 current_right, i_add = self.process_matrix(symbol, sequence[i:], matrices_and_functions, shapes)
+                i += i_add
+                
+                
+            # Is this the start of a function?
+            elif symbol.isalpha() and symbol.islower():
+                # Process the function
+                current_right, i_add = self.process_matrix_function(sequence[i:], matrices_and_functions, shapes)
                 i += i_add
                         
                         

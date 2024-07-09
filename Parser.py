@@ -17,6 +17,9 @@ op_to_function = {
     # "add": Add,
 }
 
+# Special letters for matrix funcitons that are allowed
+special_letters = ["_", "-", ".", "!", "<", ">"]
+
 
 
 class Parser:
@@ -43,8 +46,8 @@ class Parser:
             symbol = sequence[i]
             i += 1
             
-            # Is this a matrix?
-            if symbol.isalpha():
+            # Is this a matrix? A matrix can only be a capital letter
+            if symbol.isalpha() and symbol.isupper():
                 # Get the shape of the matrix
                 shape = shapes[symbol]
                 
@@ -77,6 +80,31 @@ class Parser:
                     current_shape = op_to_function[cur_op].simulate(current_shape, shape)
                 # Reset to matmul
                 cur_op = "matmul"
+                
+            # Is this the start of a function?
+            elif symbol.isalpha() and symbol.islower():
+                # We need to get the entire function name
+                function_name = symbol
+                # Iterate until we reach a left parenthesis
+                while i < len(sequence) and sequence[i] != "(":
+                    symbol = sequence[i]
+                    
+                    # If the symbol is not a letter, raise an error
+                    if not symbol.isalpha() and symbol not in special_letters:
+                        raise ValueError("Function name must be all letters")
+                    
+                    function_name += symbol
+                    i += 1
+                i += 1
+                
+                # Get the closing parenthesis (last instance)
+                closing_parenthesis = len(sequence[i:]) - 1 - sequence[i:][::-1].index(")")
+                # Slice the string for recursion
+                substring = sequence[i:i+closing_parenthesis]
+                # Process the function
+                current_shape = self.parse(substring, shapes)
+                # Skip the closing parenthesis
+                i = i + closing_parenthesis + 1
                     
             # Is this an operation
             elif symbol in operations:
@@ -84,8 +112,8 @@ class Parser:
                 
             # Is this an opening parenthesis?
             elif symbol == "(":
-                # Find the closing parenthesis
-                closing_parenthesis = sequence[i:].index(")")
+                # Get the closing parenthesis (last instance)
+                closing_parenthesis = len(sequence[i:]) - 1 - sequence[i:][::-1].index(")")
                 # Slice the string for recursion
                 substring = sequence[i:i+closing_parenthesis]
                 # Process the parenthesis

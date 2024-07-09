@@ -3,13 +3,16 @@ from classes.Operations import Transpose, Matmul
 from Parser import Parser
 from Processor import Processor
 from Calculator import Calculator
+from Similifier import Similifier
 
 
 
 
 
 
-sequence = "(M^10 Q K^T M^10) (V * W)"
+# sequence = "(M^10 Q K^T M^10) (V * W)"
+# sequence = "softmax((Q K^T) * M) V"
+sequence = "silu((Q K^T) * M) V"
 shapes = {
     "Q": ["N", "S", "d_k"],
     "K": ["N", "S", "d_k"],
@@ -22,7 +25,7 @@ wanted_grads = [
     "K",
     "V",
     "M",
-    "W",
+    # "W",
 ]
 
 
@@ -31,6 +34,7 @@ wanted_grads = [
 parser = Parser()
 processor = Processor()
 calculator = Calculator()
+similifier = Similifier()
 
 
 # Parse the input for errors
@@ -46,6 +50,9 @@ prev_grad = Matrix(grad_shape, "dL")
 
 # Calculate the gradients
 calculator.calculate(symbols, matrices_and_functions, prev_grad)
+
+# Simplify the gradients
+# similifier.simplify(matrices_and_functions)
 
 # Print the gradients
 for key in wanted_grads:

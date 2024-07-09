@@ -9,7 +9,8 @@ class Function(torch.autograd.Function):
         # return ((Q @ K.mT) * M) @ V
         # return (Q @ K.mT * M) @ (V * W)
         # return (Q @ K.mT @ torch.matrix_power(M, 10)) @ (V * W)
-        return (torch.matrix_power(M, 10) @ Q @ K.mT @ torch.matrix_power(M, 10)) @ (V * W)
+        # return (torch.matrix_power(M, 10) @ Q @ K.mT @ torch.matrix_power(M, 10)) @ (V * W)
+        return torch.nn.functional.silu((Q @ K.mT) * M) @ V
 
     @staticmethod
     def backward(ctx, grad_output):
@@ -47,15 +48,23 @@ class Function(torch.autograd.Function):
         # W_grad = (V * ((torch.matrix_power(M,10) @ Q @ K.mT).mT @ prev_grad))
         
         
-        Q_grad = torch.matrix_power(M, 10).mT @ prev_grad @ ((V * W)).mT @ torch.matrix_power(M, 10).mT @ (K.mT).mT
-        K_grad = ((torch.matrix_power(M, 10) @ Q).mT @ prev_grad @ ((V * W)).mT @ torch.matrix_power(M, 10).mT).mT
-        V_grad = (((torch.matrix_power(M, 10) @ Q @ K.mT @ torch.matrix_power(M, 10)).mT @ prev_grad) * W)
-        M_grad = torch.zeros_like(M)
-        for i in range(10):
-            M_grad += torch.matrix_power(M.mT, 10 - 1 - i) @ (prev_grad @ ((V * W)).mT @ torch.matrix_power(M, 10).mT @ K) @ Q.mT @ torch.matrix_power(M.mT, i)
-        for i in range(10):
-            M_grad += torch.matrix_power(M.mT, i) @ (torch.matrix_power(M, 10) @ Q @ K.mT).mT @ (prev_grad @ ((V * W)).mT) @ torch.matrix_power(M.mT, 10 - 1 - i)
-        W_grad = (V * ((torch.matrix_power(M, 10) @ Q @ K.mT @ torch.matrix_power(M, 10)).mT @ prev_grad))
+        # Q_grad = torch.matrix_power(M, 10).mT @ prev_grad @ ((V * W)).mT @ torch.matrix_power(M, 10).mT @ (K.mT).mT
+        # K_grad = ((torch.matrix_power(M, 10) @ Q).mT @ prev_grad @ ((V * W)).mT @ torch.matrix_power(M, 10).mT).mT
+        # V_grad = (((torch.matrix_power(M, 10) @ Q @ K.mT @ torch.matrix_power(M, 10)).mT @ prev_grad) * W)
+        # M_grad = torch.zeros_like(M)
+        # for i in range(10):
+        #     M_grad += torch.matrix_power(M.mT, 10 - 1 - i) @ (prev_grad @ ((V * W)).mT @ torch.matrix_power(M, 10).mT @ K) @ Q.mT @ torch.matrix_power(M.mT, i)
+        # for i in range(10):
+        #     M_grad += torch.matrix_power(M.mT, i) @ (torch.matrix_power(M, 10) @ Q @ K.mT).mT @ (prev_grad @ ((V * W)).mT) @ torch.matrix_power(M.mT, 10 - 1 - i)
+        # W_grad = (V * ((torch.matrix_power(M, 10) @ Q @ K.mT @ torch.matrix_power(M, 10)).mT @ prev_grad))
+        
+        
+        silu_grad = lambda x: torch.sigmoid(x) * (1 + x * (1 - torch.sigmoid(x)))
+        Q_grad = ((((silu_grad(((Q @ K.mT) * M))) * (prev_grad @ V.mT))) * M) @ (K.mT).mT
+        K_grad = (Q.mT @ ((((silu_grad(((Q @ K.mT) * M))) * (prev_grad @ V.mT))) * M)).mT
+        V_grad = (torch.nn.functional.silu(((Q @ K.mT) * M))).mT @ prev_grad
+        M_grad = ((Q @ K.mT) * (((silu_grad(((Q @ K.mT) * M))) * (prev_grad @ V.mT))))
+        W_grad = None
         
         
         return Q_grad, K_grad, V_grad, W_grad, M_grad
