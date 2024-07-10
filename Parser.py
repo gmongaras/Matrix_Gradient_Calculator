@@ -1,5 +1,6 @@
 from copy import deepcopy
 from classes.Operations import Transpose, Matmul, Hadamard, Add
+from helpers import get_matching_bracket
 
 
 
@@ -98,14 +99,15 @@ class Parser:
                     i += 1
                 i += 1
                 
-                # Get the closing parenthesis (last instance)
-                closing_parenthesis = len(sequence[i:]) - 1 - sequence[i:][::-1].index(")")
+                # Get the closing parenthesis
+                closing_parenthesis = get_matching_bracket(sequence, i)
+                # closing_parenthesis = len(sequence[i:]) - 1 - sequence[i:][::-1].index(")")
                 # Slice the string for recursion
-                substring = sequence[i:i+closing_parenthesis]
+                substring = sequence[i:closing_parenthesis]
                 # Process the function
                 current_shape = self.parse(substring, shapes)
                 # Skip the closing parenthesis
-                i = i + closing_parenthesis + 1
+                i = i + closing_parenthesis
                     
             # Is this an operation
             elif symbol in operations:
@@ -113,14 +115,14 @@ class Parser:
                 
             # Is this an opening parenthesis?
             elif symbol == "(":
-                # Get the closing parenthesis (last instance)
-                closing_parenthesis = len(sequence[i:]) - 1 - sequence[i:][::-1].index(")")
+                # Get the closing parenthesis
+                closing_parenthesis = get_matching_bracket(sequence, i)
                 # Slice the string for recursion
-                substring = sequence[i:i+closing_parenthesis]
+                substring = sequence[i:closing_parenthesis]
                 # Process the parenthesis
                 output_shape = self.parse(substring, shapes)
                 # Skip the closing parenthesis
-                i = i + closing_parenthesis + 1
+                i = i + closing_parenthesis
                 
                 # Simulate the operation with the output shape
                 if current_shape is None:

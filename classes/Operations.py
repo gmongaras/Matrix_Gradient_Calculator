@@ -33,7 +33,10 @@ class Power:
     # Then the gradient wrt B is: \sum_{i=0}^{p-n-1}[(B^T)^n dL A^T (B^T)^(p-1)]
     def get_grad_wrt_right(self, prev_grad, other_side, operation):
         if operation == "matmul":
-            equation = f"({self.matrix}^T)^i ({other_side})^T ({prev_grad}) ({self.matrix}^T)^({self.power} - 1 - i)"
+            # equation = f"({self.matrix}^T)^i ({other_side})^T ({prev_grad}) ({self.matrix}^T)^({self.power} - 1 - i)"
+            left = Power(Transpose(self.matrix), f"i")
+            right = Power(Transpose(self.matrix), "({self.power} - 1 - i)")
+            equation = Matmul(Matmul(Matmul(left, Transpose(other_side)), prev_grad), right)
             return Summation(0, self.power - 1, equation, "i")
         elif operation == "hadamard":
             raise NotImplementedError
@@ -44,7 +47,10 @@ class Power:
     # Then the gradient wrt B is: \sum_{i=0}^{p-1}[(B^T)^n dL A^T (B^T)^(p-n-1)]
     def get_grad_wrt_left(self, prev_grad, other_side, operation):
         if operation == "matmul":
-            equation = f"({self.matrix}^T)^({self.power} - 1 - i) ({prev_grad}) ({other_side})^T ({self.matrix}^T)^i"
+            # equation = f"({self.matrix}^T)^({self.power} - 1 - i) ({prev_grad}) ({other_side})^T ({self.matrix}^T)^i"
+            left = Power(Transpose(self.matrix), f"({self.power} - 1 - i)")
+            right = Power(Transpose(self.matrix), "i")
+            equation = Matmul(Matmul(Matmul(left, prev_grad), Transpose(other_side)), right)
             return Summation(0, self.power - 1, equation, "i")
         elif operation == "hadamard":
             raise NotImplementedError

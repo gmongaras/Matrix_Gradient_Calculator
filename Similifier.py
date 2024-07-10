@@ -1,5 +1,5 @@
 from classes.Matrix import Matrix
-from classes.Operations import Transpose, Power, Matmul, Hadamard
+from classes.Operations import Transpose, Power, Matmul, Hadamard, MatrixFunctionGrad, Summation
 
 
 
@@ -18,13 +18,16 @@ class Similifier:
         
         # If this is a matrix, we don't have to worry about it
         if isinstance(matrix, Matrix):
-            return
+            return grad
         
         # If this is a transpose, we can remove the transpose
         if isinstance(matrix, Transpose):
-            matrices_and_functions[matrix.matrix.label] = matrix.matrix
-            del matrices_and_functions[matrix.label]
-            del matrices_and_functions[function.label]
+            # matrices_and_functions[matrix.matrix.label] = matrix.matrix
+            # del matrices_and_functions[matrix.label]
+            # del matrices_and_functions[function.label]
+            grad = matrix.matrix
+        
+        return grad
             
             
     # Used to simplify a matmul operation
@@ -36,24 +39,44 @@ class Similifier:
             del matrices_and_functions[grad.left.label]
             del matrices_and_functions[grad.right.label]
             
+        return grad
+            
             
             
     def simplify_grad(self, matrices_and_functions, grad):
         # Matrices cannot be similified obviously
         if isinstance(grad, Matrix):
-            return
+            return grad
         
         # If the function is a transpose, we may be able to simplify it
-        if isinstance(grad, Transpose):
-            self.simplify_grad(matrices_and_functions, grad.matrix)
-            self.simplify_transpose(matrices_and_functions, grad)
+        elif isinstance(grad, Transpose):
+            grad.matrix = self.simplify_grad(matrices_and_functions, grad.matrix)
+            grad = self.simplify_transpose(matrices_and_functions, grad)
             
         # If the function is a Matmul
-        if isinstance(grad, Matmul):
+        elif isinstance(grad, Matmul):
             # Simplify left and right, then simplify the matmul
-            self.simplify_grad(matrices_and_functions, grad.left)
-            self.simplify_grad(matrices_and_functions, grad.right)
-            self.simplify_matmul(matrices_and_functions, grad)
+            grad.left = self.simplify_grad(matrices_and_functions, grad.left)
+            grad.right = self.simplify_grad(matrices_and_functions, grad.right)
+            grad = self.simplify_matmul(matrices_and_functions, grad)
+            
+        # If the function is a Hadamard
+        elif isinstance(grad, Hadamard):
+            # Simplify left and right
+            grad.left = self.simplify_grad(matrices_and_functions, grad.left)
+            grad.right = self.simplify_grad(matrices_and_functions, grad.right)
+            
+        # If the function is a MatrixFunctionGrad
+        elif isinstance(grad, MatrixFunctionGrad):
+            # Simplify the matrix
+            grad.matrix = self.simplify_grad(matrices_and_functions, grad.matrix)
+            
+        # If the function is a Summation
+        elif isinstance(grad, Summation):
+            # Simplify the equation
+            grad.equation = self.simplify_grad(matrices_and_functions, grad.equation)
+            
+        return grad
 
     
     def simplify(self, matrices_and_functions):
@@ -64,4 +87,4 @@ class Similifier:
         for matrix, function in functions.items():
             # Iterate through all the gradient functions
             for grad in function:
-                self.simply_grad(matrices_and_functions, grad)
+                self.simplify_grad(matrices_and_functions, grad)

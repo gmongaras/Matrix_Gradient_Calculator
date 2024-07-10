@@ -1,6 +1,7 @@
 from classes.Matrix import Matrix
 from classes.Operations import Transpose, Power, Matmul, Hadamard, Add, MatrixFunction
 from Parser import special_letters
+from helpers import get_matching_bracket
 
 
 
@@ -26,8 +27,8 @@ class Processor:
         
         
     def process_parenthesis(self, sequence, matrices_and_functions, shapes):
-        # Get the closing parenthesis (last instance)
-        closing_parenthesis = len(sequence) - 1 - sequence[::-1].index(")")
+        # Get the closing parenthesis
+        closing_parenthesis = get_matching_bracket(sequence, 0)
         # Slice string for recursion
         substring = sequence[:closing_parenthesis].strip()
         
