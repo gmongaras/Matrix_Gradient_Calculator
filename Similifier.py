@@ -1,5 +1,5 @@
 from classes.Matrix import Matrix
-from classes.Operations import Transpose, Power, Matmul, Hadamard, MatrixFunctionGrad, Summation
+from classes.Operations import Transpose, Power, Matmul, Hadamard, Add, MatrixFunction, MatrixFunctionGrad, Summation
 
 
 
@@ -21,11 +21,37 @@ class Similifier:
             return grad
         
         # If this is a transpose, we can remove the transpose
-        if isinstance(matrix, Transpose):
-            # matrices_and_functions[matrix.matrix.label] = matrix.matrix
-            # del matrices_and_functions[matrix.label]
-            # del matrices_and_functions[function.label]
+        elif isinstance(matrix, Transpose):
             grad = matrix.matrix
+            
+        # If this is a power, we can move the transpose into the power
+        elif isinstance(matrix, Power):
+            matrix.matrix = Transpose(matrix.matrix)
+            grad = matrix
+            
+        # If this is a matmul, we can reverse the order of the matmul
+        # and transpose each matrix
+        elif isinstance(matrix, Matmul):
+            grad = matrix
+            tmp = grad.left
+            grad.left = Transpose(grad.right)
+            grad.right = Transpose(tmp)
+        
+        # If this is a hadamard or Add, we can transpose each matrix
+        elif isinstance(matrix, Hadamard) or isinstance(matrix, Add):
+            grad = matrix
+            grad.left = Transpose(grad.left)
+            grad.right = Transpose(grad.right)
+            
+        # If this is a matrix function grad, we can transpose the matrix
+        elif isinstance(matrix, MatrixFunctionGrad) or isinstance(matrix, MatrixFunction):
+            grad = matrix
+            grad.matrix = Transpose(grad.matrix)
+            
+        # If this is a summation, we can transpose the equation
+        elif isinstance(matrix, Summation):
+            grad = matrix
+            grad.equation = Transpose(grad.equation)
         
         return grad
             
@@ -40,6 +66,18 @@ class Similifier:
             del matrices_and_functions[grad.right.label]
             
         return grad
+    
+    
+    
+    # Used to simplify a hadamard operation
+    def simplify_hadamard(self, matrices_and_functions, grad):
+        return grad
+    
+    
+    
+    # Used to simplify a summation operation
+    def simplify_summation(self, matrices_and_functions, grad):
+        return grad
             
             
             
@@ -48,10 +86,12 @@ class Similifier:
         if isinstance(grad, Matrix):
             return grad
         
-        # If the function is a transpose, we may be able to simplify it
+        # If the function is a transpose
         elif isinstance(grad, Transpose):
-            grad.matrix = self.simplify_grad(matrices_and_functions, grad.matrix)
+            if isinstance(grad.matrix, Matrix):
+                return grad
             grad = self.simplify_transpose(matrices_and_functions, grad)
+            grad = self.simplify_grad(matrices_and_functions, grad)
             
         # If the function is a Matmul
         elif isinstance(grad, Matmul):
@@ -67,7 +107,7 @@ class Similifier:
             grad.right = self.simplify_grad(matrices_and_functions, grad.right)
             
         # If the function is a MatrixFunctionGrad
-        elif isinstance(grad, MatrixFunctionGrad):
+        elif isinstance(grad, MatrixFunctionGrad) or isinstance(grad, MatrixFunction):
             # Simplify the matrix
             grad.matrix = self.simplify_grad(matrices_and_functions, grad.matrix)
             
@@ -86,5 +126,8 @@ class Similifier:
         # Iterate through all the function gradients
         for matrix, function in functions.items():
             # Iterate through all the gradient functions
+            new_grads = []
             for grad in function:
-                self.simplify_grad(matrices_and_functions, grad)
+                grad = self.simplify_grad(matrices_and_functions, grad)
+                new_grads.append(grad)
+            matrices_and_functions[matrix].grad = new_grads

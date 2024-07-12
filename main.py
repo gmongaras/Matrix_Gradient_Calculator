@@ -83,6 +83,11 @@ prev_grad = Matrix(grad_shape, "dL")
 # Calculate the gradients
 calculator.calculate(symbols, matrices_and_functions, prev_grad)
 
+# Clone gradients so there's no dependencies between them
+from copy import deepcopy
+for key in wanted_grads:
+    matrices_and_functions[key].grad = [deepcopy(matrix) for matrix in matrices_and_functions[key].grad]
+
 # Simplify the gradients
 similifier.simplify(matrices_and_functions)
 
