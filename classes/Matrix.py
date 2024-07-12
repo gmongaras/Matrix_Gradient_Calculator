@@ -1,3 +1,5 @@
+from copy import deepcopy
+
 class Matrix:
     def __init__(self, shape, label):
         assert isinstance(shape, list)
@@ -12,3 +14,9 @@ class Matrix:
         
     def __str__(self, ):
         return self.label
+    
+    def copy(self,):
+        return Matrix(
+            deepcopy(self.shape),
+            self.label
+        )

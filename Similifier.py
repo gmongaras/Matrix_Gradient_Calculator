@@ -34,8 +34,8 @@ class Similifier:
         elif isinstance(matrix, Matmul):
             grad = matrix
             tmp = grad.left
-            grad.left = Transpose(grad.right)
-            grad.right = Transpose(tmp)
+            grad.left = Transpose(grad.right.copy())
+            grad.right = Transpose(tmp.copy())
         
         # If this is a hadamard or Add, we can transpose each matrix
         elif isinstance(matrix, Hadamard) or isinstance(matrix, Add):
@@ -100,8 +100,8 @@ class Similifier:
             grad.right = self.simplify_grad(matrices_and_functions, grad.right)
             grad = self.simplify_matmul(matrices_and_functions, grad)
             
-        # If the function is a Hadamard
-        elif isinstance(grad, Hadamard):
+        # If the function is a Hadamard or Add
+        elif isinstance(grad, Hadamard) or isinstance(grad, Add):
             # Simplify left and right
             grad.left = self.simplify_grad(matrices_and_functions, grad.left)
             grad.right = self.simplify_grad(matrices_and_functions, grad.right)

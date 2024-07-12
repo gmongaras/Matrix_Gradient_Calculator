@@ -107,7 +107,7 @@ class Parser:
                 # Process the function
                 current_shape = self.parse(substring, shapes)
                 # Skip the closing parenthesis
-                i = i + closing_parenthesis
+                i = i + closing_parenthesis - 1
                     
             # Is this an operation
             elif symbol in operations:

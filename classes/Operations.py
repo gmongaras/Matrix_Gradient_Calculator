@@ -1,4 +1,5 @@
 from classes.Matrix import Matrix
+from copy import deepcopy
 
 
 
@@ -19,6 +20,12 @@ class Transpose:
         cur_shape[-1] = cur_shape[-2]
         cur_shape[-2] = tmp
         return cur_shape
+    
+    def copy(self,):
+        return Transpose(
+            self.matrix.copy(),
+            self.name
+        )
     
     
     
@@ -63,6 +70,13 @@ class Power:
     def simulate(cur_shape):
         assert len(cur_shape) >= 2
         return cur_shape
+    
+    def copy(self):
+        return Power(
+            self.matrix.copy(),
+            self.power,
+            self.name
+        )
  
  
     
@@ -74,6 +88,7 @@ class Summation:
         self.upper = upper
         self.equation = equation
         self.index = index
+        self.name = name
         
     def get_grad(self, prev_grad):
         raise NotImplementedError
@@ -83,6 +98,15 @@ class Summation:
     
     def simulate(cur_shape):
         raise NotImplementedError
+    
+    def copy(self,):
+        return Summation(
+            self.lower.copy() if not isinstance(self.lower, str) else self.lower,
+            self.upper.copy() if not isinstance(self.upper, str) else self.upper,
+            self.equation.copy() if not isinstance(self.equation, str) else self.equation,
+            self.index.copy() if not isinstance(self.index, str) else self.index,
+            self.name
+        )
 
 
 
@@ -109,6 +133,13 @@ class Matmul:
         cur_shape[-1] = mat_shape[-1]
         return cur_shape
     
+    def copy(self,):
+        return Matmul(
+            self.left.copy() if self.left is not None else None,
+            self.right.copy() if self.right is not None else None,
+            self.name
+        )
+    
     
 class Hadamard:
     def __init__(self, left=None, right=None, name=None):
@@ -131,6 +162,13 @@ class Hadamard:
         assert len(cur_shape) == len(mat_shape)
         assert cur_shape == mat_shape
         return cur_shape
+    
+    def copy(self,):
+        return Hadamard(
+            self.left.copy() if self.left is not None else None,
+            self.right.copy() if self.right is not None else None,
+            self.name
+        )
     
     
 class Add:
@@ -155,6 +193,13 @@ class Add:
         assert cur_shape == mat_shape
         return cur_shape
     
+    def copy(self,):
+        return Add(
+            self.left.copy() if self.left is not None else None,
+            self.right.copy() if self.right is not None else None,
+            self.name
+        )
+    
     
     
     
@@ -175,6 +220,12 @@ class MatrixFunction:
     def simulate(cur_shape):
         return cur_shape
     
+    def copy(self,):
+        return MatrixFunction(
+            self.matrix.copy(),
+            self.name
+        )
+    
 # Dummy class for the gradient of a matrix function
 class MatrixFunctionGrad:
     def __init__(self, matrix, name):
@@ -189,3 +240,9 @@ class MatrixFunctionGrad:
     
     def simulate(cur_shape):
         return cur_shape
+    
+    def copy(self,):
+        return MatrixFunctionGrad(
+            self.matrix.copy(),
+            self.name
+        )
