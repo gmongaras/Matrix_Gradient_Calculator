@@ -63,7 +63,7 @@ K = torch.rand(N, H, S, D, requires_grad=True).cuda()
 V = torch.rand(N, H, S, D, requires_grad=True).cuda()
 M = torch.rand(N, H, S, S, requires_grad=True).cuda()
 
-torch.nn.functional.softmax(((X @ Q) @ (X @ K).mT) * M, dim=-1) @ (X @ V)
+torch.nn.functional.softmax((Q @ K.mT) * M, dim=-1) @ V
 
 softmax = torch.nn.functional.softmax
 Jacobian = lambda x: torch.diag_embed(x) - x[..., :, None] * x[..., None, :]
