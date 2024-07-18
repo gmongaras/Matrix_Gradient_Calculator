@@ -34,7 +34,7 @@ D_grad = (f(f(((f(X @ A)) + X) @ B) @ C)).mT @ ((f_der(f(f(((f(X @ A)) + X) @ B)
 
 
 
-Was it worth it? We now know the gradient of softmax
+Was it worth it? We now know the gradient of softmax attention
 
 ```
 N, H, S, D = 1, 2, 16, 12
