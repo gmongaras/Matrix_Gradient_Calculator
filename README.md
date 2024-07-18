@@ -75,8 +75,10 @@ M_grad = ((Q @ K.mT) * (torch.einsum("...ijk,...ik->...ij", Jacobian(softmax(((Q
 ```
 
 
+These are actually correct. Just look absolutely terrible.
 
-I need to clean this mess up.
+
+I need to clean this messy repo up.
 
 
 
@@ -87,13 +89,13 @@ Current partial support:
 - additions
 - transposes
 - scalar functions
+- vector functions
+- torch compilation instead of just replacing strings
 
 Less than partial support:
 - matrix power (I don't remember why this is here. Hopefully it doesn't become a problem)
-- vector functions
 
 Future support:
 - matrix names
 - better errors
-- torch compilation instead of just replacing strings
 - actual testing
