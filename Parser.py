@@ -29,7 +29,7 @@ class Parser:
         pass
     
     
-    def parse(self, sequence, shapes):
+    def parse(self, sequence, shapes, function_types):
         # Remove all spaces
         sequence = sequence.replace(" ", "")
         
@@ -77,7 +77,7 @@ class Parser:
                 
                 # Simulate the operation
                 if current_shape is None:
-                    current_shape = shape
+                    current_shape = deepcopy(shape)
                 else:
                     current_shape = op_to_function[cur_op].simulate(current_shape, shape)
                 # Reset to matmul
@@ -105,7 +105,7 @@ class Parser:
                 # Slice the string for recursion
                 substring = sequence[i:closing_parenthesis]
                 # Process the function
-                current_shape = self.parse(substring, shapes)
+                current_shape = self.parse(substring, shapes, function_types)
                 # Skip the closing parenthesis
                 i = i + closing_parenthesis - 1
                     
@@ -119,14 +119,24 @@ class Parser:
                 closing_parenthesis = get_matching_bracket(sequence, i)
                 # Slice the string for recursion
                 substring = sequence[i:closing_parenthesis]
-                # Process the parenthesis
-                output_shape = self.parse(substring, shapes)
-                # Skip the closing parenthesis
-                i = i + closing_parenthesis
+                # Is there a transpose after the closing parenthesis?
+                if closing_parenthesis + 1 < len(sequence) and sequence[closing_parenthesis + 1] == "^" and closing_parenthesis + 2 < len(sequence) and sequence[closing_parenthesis + 2] == "T":
+                    # If so, we have a transpose
+                    # We will create a temporary output shape via simulating the perenthesis
+                    tmp_shape = self.parse(substring, shapes, function_types)
+                    # Simulate the transpose on the inner parenthesis
+                    output_shape = op_to_function["transpose"].simulate(tmp_shape)
+                    # Skip the closing parenthesis and the T
+                    i = i + closing_parenthesis + 2
+                else:
+                    # Process the parenthesis normally
+                    output_shape = self.parse(substring, shapes, function_types)
+                    # Skip the closing parenthesis
+                    i = i + closing_parenthesis
                 
                 # Simulate the operation with the output shape
                 if current_shape is None:
-                    current_shape = output_shape
+                    current_shape = deepcopy(output_shape)
                 else:
                     current_shape = op_to_function[cur_op].simulate(current_shape, output_shape)
                     

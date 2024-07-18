@@ -2,6 +2,9 @@ import torch
 
 
 
+
+
+"""
 class Function(torch.autograd.Function):
     @staticmethod
     def forward(ctx, Q, K, V, W, M):
@@ -10,7 +13,7 @@ class Function(torch.autograd.Function):
         # return (Q @ K.mT * M) @ (V * W)
         # return (Q @ K.mT @ torch.matrix_power(M, 10)) @ (V * W)
         # return (torch.matrix_power(M, 10) @ Q @ K.mT @ torch.matrix_power(M, 10)) @ (V * W)
-        return torch.nn.functional.silu((Q @ K.mT) * M) @ V
+        return torch.nn.functional.softmax((Q @ K.mT) * M, -1) @ V
 
     @staticmethod
     def backward(ctx, grad_output):
@@ -67,16 +70,92 @@ class Function(torch.autograd.Function):
         # W_grad = (V * (torch.matrix_power(M.mT, 10) @ K @ Q.mT @ torch.matrix_power(M.mT, 10) @ prev_grad))
         
         
-        silu = torch.nn.functional.silu
-        silu_der = lambda x: torch.sigmoid(x) * (1 + x * (1 - torch.sigmoid(x)))
-        Q_grad = ((((silu_der(((Q @ K.mT) * M))) * (prev_grad @ V.mT))) * M) @ K
-        K_grad = ((((silu_der(((K @ Q.mT) * (M.mT)))) * (V @ prev_grad.mT))) * (M.mT)) @ Q
-        V_grad = silu(((K @ Q.mT) * (M.mT))) @ prev_grad
-        M_grad = ((Q @ K.mT) * (((silu_der(((Q @ K.mT) * M))) * (prev_grad @ V.mT))))
+        # silu = torch.nn.functional.silu
+        # silu_der = lambda x: torch.sigmoid(x) * (1 + x * (1 - torch.sigmoid(x)))
+        # Q_grad = ((((silu_der(((Q @ K.mT) * M))) * (prev_grad @ V.mT))) * M) @ K
+        # K_grad = ((((silu_der(((K @ Q.mT) * (M.mT)))) * (V @ prev_grad.mT))) * (M.mT)) @ Q
+        # V_grad = silu(((K @ Q.mT) * (M.mT))) @ prev_grad
+        # M_grad = ((Q @ K.mT) * (((silu_der(((Q @ K.mT) * M))) * (prev_grad @ V.mT))))
+        # W_grad = None
+        
+        
+        
+        
+        softmax = torch.nn.functional.softmax
+        Jacobian = lambda x: torch.diag_embed(x) - x[..., :, None] * x[..., None, :]
+        Q_grad = ((torch.einsum("...ijk,...ik->...ij", Jacobian(softmax(((Q @ K.mT) * M), dim=-1)), prev_grad @ V.mT)) * M) @ K
+        K_grad = ((torch.einsum("...ijk,...ki->...ji", Jacobian(softmax(((Q @ K.mT) * M), dim=-1)), V @ prev_grad.mT)) * (M.mT)) @ Q
+        V_grad = softmax(((K @ Q.mT) * (M.mT)), dim=-2) @ prev_grad
+        M_grad = ((Q @ K.mT) * (torch.einsum("...ijk,...ik->...ij", Jacobian(softmax(((Q @ K.mT) * M), dim=-1)), prev_grad @ V.mT)))
         W_grad = None
         
-        
         return Q_grad, K_grad, V_grad, W_grad, M_grad
+        
+        
+        
+N, H, S, D = 1, 2, 16, 12
+Q = torch.rand(N, H, S, D, requires_grad=True).cuda()
+K = torch.rand(N, H, S, D, requires_grad=True).cuda()
+V = torch.rand(N, H, S, D, requires_grad=True).cuda()
+W = torch.rand(N, H, D, D, requires_grad=True).cuda()
+M = torch.rand(N, H, S, S, requires_grad=True).cuda()
+
+torch.autograd.gradcheck(Function.apply, (Q.double(), K.double(), V.double(), W.double(), M.double()), eps=1e-4)
+"""
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+# """
+class Function(torch.autograd.Function):
+    @staticmethod
+    def forward(ctx, X, Q, K, V, M):
+        ctx.save_for_backward(X, Q, K, V, M)
+        return torch.nn.functional.softmax(((X @ Q) @ (X @ K).mT) * M, dim=-1) @ (X @ V)
+
+    @staticmethod
+    def backward(ctx, grad_output):
+        X, Q, K, V, M = ctx.saved_tensors
+        prev_grad = grad_output
+        
+        softmax = torch.nn.functional.softmax
+        Jacobian = lambda x: torch.diag_embed(x) - x[..., :, None] * x[..., None, :]
+        
+        X_grad = ((torch.einsum("...ijk,...ik->...ij", Jacobian(softmax(((X @ Q @ (X @ K).mT) * M), dim=-1)), prev_grad @ V.mT @ X.mT)) * M) @ X @ K @ Q.mT+((torch.einsum("...ijk,...ki->...ji", Jacobian(softmax(((X @ Q @ (X @ K).mT) * M), dim=-1)), X @ V @ prev_grad.mT)) * (M.mT)) @ X @ Q @ K.mT+softmax(((X @ K @ Q.mT @ X.mT) * (M.mT)), dim=-2) @ prev_grad @ V.mT
+        Q_grad = X.mT @ ((torch.einsum("...ijk,...ik->...ij", Jacobian(softmax(((X @ Q @ (X @ K).mT) * M), dim=-1)), prev_grad @ V.mT @ X.mT)) * M) @ X @ K
+        K_grad = X.mT @ ((torch.einsum("...ijk,...ki->...ji", Jacobian(softmax(((X @ Q @ (X @ K).mT) * M), dim=-1)), X @ V @ prev_grad.mT)) * (M.mT)) @ X @ Q
+        V_grad = X.mT @ softmax(((X @ K @ Q.mT @ X.mT) * (M.mT)), dim=-2) @ prev_grad
+        M_grad = ((X @ Q @ K.mT @ X.mT) * (torch.einsum("...ijk,...ik->...ij", Jacobian(softmax(((X @ Q @ (X @ K).mT) * M), dim=-1)), prev_grad @ V.mT @ X.mT)))
+        
+        return X_grad, Q_grad, K_grad, V_grad, M_grad
+    
+    
+N, H, S, D = 1, 2, 16, 12
+Q = torch.rand(D, D, requires_grad=True).cuda()
+K = torch.rand(D, D, requires_grad=True).cuda()
+V = torch.rand(D, D, requires_grad=True).cuda()
+X = torch.rand(N, H, S, D, requires_grad=True).cuda()
+M = torch.rand(N, H, S, S, requires_grad=True).cuda()
+
+torch.autograd.gradcheck(Function.apply, (X.double(), Q.double(), K.double(), V.double(), M.double()), eps=1e-4)
+# """
+    
+    
+    
+    
+    
+    
+    
+    
+    
     
     
     
@@ -179,16 +258,6 @@ class Function(torch.autograd.Function):
     
     
     
-    
-
-N, H, S, D = 1, 2, 16, 12
-Q = torch.rand(N, H, S, D, requires_grad=True).cuda()
-K = torch.rand(N, H, S, D, requires_grad=True).cuda()
-V = torch.rand(N, H, S, D, requires_grad=True).cuda()
-W = torch.rand(N, H, S, D, requires_grad=True).cuda()
-M = torch.rand(N, H, S, S, requires_grad=True).cuda()
-
-torch.autograd.gradcheck(Function.apply, (Q.double(), K.double(), V.double(), W.double(), M.double()), eps=1e-4)
 
 # N = 10
 # d = 15

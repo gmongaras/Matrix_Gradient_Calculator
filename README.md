@@ -34,6 +34,53 @@ D_grad = (f(f(((f(X @ A)) + X) @ B) @ C)).mT @ ((f_der(f(f(((f(X @ A)) + X) @ B)
 
 
 
+Was it worth it? We now know the gradient of softmax
+
+```
+N, H, S, D = 1, 2, 16, 12
+Q = torch.rand(D, D, requires_grad=True).cuda()
+K = torch.rand(D, D, requires_grad=True).cuda()
+V = torch.rand(D, D, requires_grad=True).cuda()
+X = torch.rand(N, H, S, D, requires_grad=True).cuda()
+M = torch.rand(N, H, S, S, requires_grad=True).cuda()
+
+torch.nn.functional.softmax(((X @ Q) @ (X @ K).mT) * M, dim=-1) @ (X @ V)
+
+softmax = torch.nn.functional.softmax
+Jacobian = lambda x: torch.diag_embed(x) - x[..., :, None] * x[..., None, :]
+
+X_grad = ((torch.einsum("...ijk,...ik->...ij", Jacobian(softmax(((X @ Q @ (X @ K).mT) * M), dim=-1)), prev_grad @ V.mT @ X.mT)) * M) @ X @ K @ Q.mT+((torch.einsum("...ijk,...ki->...ji", Jacobian(softmax(((X @ Q @ (X @ K).mT) * M), dim=-1)), X @ V @ prev_grad.mT)) * (M.mT)) @ X @ Q @ K.mT+softmax(((X @ K @ Q.mT @ X.mT) * (M.mT)), dim=-2) @ prev_grad @ V.mT
+Q_grad = X.mT @ ((torch.einsum("...ijk,...ik->...ij", Jacobian(softmax(((X @ Q @ (X @ K).mT) * M), dim=-1)), prev_grad @ V.mT @ X.mT)) * M) @ X @ K
+K_grad = X.mT @ ((torch.einsum("...ijk,...ki->...ji", Jacobian(softmax(((X @ Q @ (X @ K).mT) * M), dim=-1)), X @ V @ prev_grad.mT)) * (M.mT)) @ X @ Q
+V_grad = X.mT @ softmax(((X @ K @ Q.mT @ X.mT) * (M.mT)), dim=-2) @ prev_grad
+M_grad = ((X @ Q @ K.mT @ X.mT) * (torch.einsum("...ijk,...ik->...ij", Jacobian(softmax(((X @ Q @ (X @ K).mT) * M), dim=-1)), prev_grad @ V.mT @ X.mT)))
+```
+
+```
+N, H, S, D = 1, 2, 16, 12
+Q = torch.rand(N, H, S, D, requires_grad=True).cuda()
+K = torch.rand(N, H, S, D, requires_grad=True).cuda()
+V = torch.rand(N, H, S, D, requires_grad=True).cuda()
+M = torch.rand(N, H, S, S, requires_grad=True).cuda()
+
+torch.nn.functional.softmax(((X @ Q) @ (X @ K).mT) * M, dim=-1) @ (X @ V)
+
+softmax = torch.nn.functional.softmax
+Jacobian = lambda x: torch.diag_embed(x) - x[..., :, None] * x[..., None, :]
+
+Q_grad = ((torch.einsum("...ijk,...ik->...ij", Jacobian(softmax(((Q @ K.mT) * M), dim=-1)), prev_grad @ V.mT)) * M) @ K
+K_grad = ((torch.einsum("...ijk,...ki->...ji", Jacobian(softmax(((Q @ K.mT) * M), dim=-1)), V @ prev_grad.mT)) * (M.mT)) @ Q
+V_grad = softmax(((K @ Q.mT) * (M.mT)), dim=-2) @ prev_grad
+M_grad = ((Q @ K.mT) * (torch.einsum("...ijk,...ik->...ij", Jacobian(softmax(((Q @ K.mT) * M), dim=-1)), prev_grad @ V.mT)))
+```
+
+
+
+I need to clean this mess up.
+
+
+
+
 Current partial support:
 - matrix multiplication
 - hadamard product
@@ -43,7 +90,10 @@ Current partial support:
 
 Less than partial support:
 - matrix power (I don't remember why this is here. Hopefully it doesn't become a problem)
+- vector functions
 
 Future support:
 - matrix names
-- vector functions
+- better errors
+- torch compilation instead of just replacing strings
+- actual testing

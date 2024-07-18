@@ -15,6 +15,9 @@ class Matrix:
     def __str__(self, ):
         return self.label
     
+    def torch_str(self, ):
+        return self.label
+    
     def copy(self,):
         return Matrix(
             deepcopy(self.shape),

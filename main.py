@@ -12,21 +12,53 @@ from Similifier import Similifier
 
 # sequence = "(M^10 Q K^T M^10) (V * W)"
 # sequence = "softmax((Q K^T) * M) V"
-sequence = "silu((Q K^T) * M) V"
+# sequence = "silu((Q K^T) * M) V"
+# shapes = {
+#     "Q": ["N", "S", "d_k"],
+#     "K": ["N", "S", "d_k"],
+#     "V": ["N", "S", "d_v"],
+#     "M": ["N", "S", "S"],
+#     "W": ["N", "d_k", "d_k"],
+# }
+# wanted_grads = [
+#     "Q",
+#     "K",
+#     "V",
+#     "M",
+#     "W",
+# ]
+# function_types = {
+#     "softmax": "vector",
+#     "silu": "scalar",
+# }
+
+
+
+
+sequence = "softmax(((X Q) (X K)^T) * M) (X V)"
 shapes = {
-    "Q": ["N", "S", "d_k"],
-    "K": ["N", "S", "d_k"],
-    "V": ["N", "S", "d_v"],
+    "X": ["N", "S", "d"],
+    "Q": ["d", "d_k"],
+    "K": ["d", "d_k"],
+    "V": ["d", "d_v"],
     "M": ["N", "S", "S"],
-    "W": ["N", "S", "d_v"],
 }
 wanted_grads = [
+    "X",
     "Q",
     "K",
     "V",
     "M",
-    # "W",
 ]
+function_types = {
+    "softmax": "vector",
+    "silu": "scalar",
+}
+
+
+
+
+
 
 # sequence = "silu((Q K^T) * M) V"
 # shapes = {
@@ -70,12 +102,12 @@ similifier = Similifier()
 
 
 # Parse the input for errors
-grad_shape = parser.parse(sequence, shapes)
+grad_shape = parser.parse(sequence, shapes, function_types)
 
 print(f"Input gradient dL will be of shape {grad_shape}")
 
 # Process input to a symbolic representation
-symbols, matrices_and_functions = processor.process(sequence, shapes)
+symbols, matrices_and_functions = processor.process(sequence, shapes, function_types)
 
 # Prev grad matrix initialized to the output shape
 prev_grad = Matrix(grad_shape, "dL")
@@ -95,18 +127,24 @@ for key in wanted_grads:
     grad_fns = matrices_and_functions[key].grad
     string = "+".join([str(grad_fn) for grad_fn in grad_fns])
     print(f"Gradient of {key}: {string}")
-    
-# Print gradients in torch notation
+print()
+# Print the gradients for torch
 for key in wanted_grads:
     grad_fns = matrices_and_functions[key].grad
-    string = " + ".join([str(grad_fn) for grad_fn in grad_fns])
-    string = string.replace(" ", "@")
-    string = string.replace("@*@", " * ")
-    string = string.replace("@+@", " + ")
-    string = string.replace("@", " @ ")
-    string = string.replace("[", "(")
-    string = string.replace("]", ")")
-    string = string.replace("dL", "prev_grad")
-    string = string.replace("^T", ".mT")
-    string = string.replace("'", "_der")
+    string = "+".join([grad_fn.torch_str() for grad_fn in grad_fns]).replace("dL", "prev_grad")
     print(f"{key}_grad = {string}")
+    
+# # Print gradients in torch notation
+# for key in wanted_grads:
+#     grad_fns = matrices_and_functions[key].grad
+#     string = " + ".join([str(grad_fn) for grad_fn in grad_fns])
+#     string = string.replace(" ", "@")
+#     string = string.replace("@*@", " * ")
+#     string = string.replace("@+@", " + ")
+#     string = string.replace("@", " @ ")
+#     string = string.replace("[", "(")
+#     string = string.replace("]", ")")
+#     string = string.replace("dL", "prev_grad")
+#     string = string.replace("^T", ".mT")
+#     string = string.replace("'", "_der")
+#     print(f"{key}_grad = {string}")
