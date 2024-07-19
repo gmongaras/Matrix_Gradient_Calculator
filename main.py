@@ -94,33 +94,42 @@ function_types = {
 
 
 
+def main(sequence, shapes, wanted_grads, function_types):
+    parser = Parser()
+    processor = Processor()
+    calculator = Calculator()
+    similifier = Similifier()
 
-parser = Parser()
-processor = Processor()
-calculator = Calculator()
-similifier = Similifier()
 
+    # Parse the input for errors
+    grad_shape = parser.parse(sequence, shapes, function_types)
 
-# Parse the input for errors
-grad_shape = parser.parse(sequence, shapes, function_types)
+    print(f"Input gradient dL will be of shape {grad_shape}")
 
-print(f"Input gradient dL will be of shape {grad_shape}")
+    # Process input to a symbolic representation
+    symbols, matrices_and_functions = processor.process(sequence, shapes, function_types)
 
-# Process input to a symbolic representation
-symbols, matrices_and_functions = processor.process(sequence, shapes, function_types)
+    # Prev grad matrix initialized to the output shape
+    prev_grad = Matrix(grad_shape, "dL")
 
-# Prev grad matrix initialized to the output shape
-prev_grad = Matrix(grad_shape, "dL")
+    # Calculate the gradients
+    calculator.calculate(symbols, matrices_and_functions, prev_grad)
 
-# Calculate the gradients
-calculator.calculate(symbols, matrices_and_functions, prev_grad)
+    # Clone gradients so there's no dependencies between them
+    for key in wanted_grads:
+        matrices_and_functions[key].grad = [matrix.copy() for matrix in matrices_and_functions[key].grad]
 
-# Clone gradients so there's no dependencies between them
-for key in wanted_grads:
-    matrices_and_functions[key].grad = [matrix.copy() for matrix in matrices_and_functions[key].grad]
+    # Simplify the gradients
+    similifier.simplify(matrices_and_functions)
+    
+    return matrices_and_functions
 
-# Simplify the gradients
-similifier.simplify(matrices_and_functions)
+matrices_and_functions = main(
+    sequence,
+    shapes,
+    wanted_grads,
+    function_types
+)
 
 # Print the gradients
 for key in wanted_grads:
